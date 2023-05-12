@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
 
-class SensorInput(BaseModel):
+class PlantInput(BaseModel):
     name: str
     description: str

@@ -1,13 +1,12 @@
 # app/routers/users.py
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, HTTPException
 from starlette import status
 
-from auth import get_user, create_access_token
+from utils.auth import get_user, create_access_token
 from database import iot
 from inputs.login_input import LoginRequest
-from json_encoder import jsonable_encoder
+from utils.json_encoder import jsonable_encoder
 from models.user import User
 
 router = APIRouter()
