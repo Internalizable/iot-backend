@@ -1,18 +1,18 @@
 # app/routers/users.py
+import hashlib
 
 from fastapi import APIRouter, HTTPException
 from starlette import status
 
-from utils.auth import get_user, create_access_token
 from database import iot
-from inputs.login_input import LoginRequest
+from inputs.login_input import LoginRequest, SignUpRequest
+from utils.auth import get_user, create_access_token
 from utils.json_encoder import jsonable_encoder
-from models.user import User
 
 router = APIRouter()
 
 
-@router.post("/users/token")
+@router.post("/users/login")
 async def login_for_access_token(login_request: LoginRequest):
     user = await get_user(login_request.email)
     if not user or user.password != login_request.password:
@@ -25,8 +25,16 @@ async def login_for_access_token(login_request: LoginRequest):
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@router.post("/users/")
-async def create_user(user: User):
-    new_user = await iot["users"].insert_one(user.dict())
+@router.post("/users/signup")
+async def create_user(signup_request: SignUpRequest):
+    hashed_password = hashlib.sha256(signup_request.password.encode()).hexdigest()
+
+    new_user_data = {
+        "email": signup_request.email,
+        "password": hashed_password,
+        "admin": 0
+    }
+
+    new_user = await iot["users"].insert_one(new_user_data)
     created_user = await iot["users"].find_one({"_id": new_user.inserted_id})
     return jsonable_encoder(created_user)

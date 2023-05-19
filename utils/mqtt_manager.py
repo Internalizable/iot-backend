@@ -1,46 +1,49 @@
 import asyncio
 import json
-import paho.mqtt.client as mqtt
 from datetime import datetime
-from models.plant import Plant, SensorValue
+from database import iot
+import asyncio
+import asyncio_mqtt as aiomqtt
+
+from models.plant import SensorValue
 from utils.websocket_manager import WebSocketManager
 
 
 class MQTTManager:
+
     def __init__(self, socket_manager: WebSocketManager):
         self.socket_manager = socket_manager
-        self.mqtt_client = mqtt.Client()
-        self.mqtt_client.on_connect = self.on_connect
-        self.mqtt_client.on_message = self.on_message
 
-    def connect(self, host):
-        self.mqtt_client.connect(host)
-        self.mqtt_client.loop_start()
+    async def connect(self, host):
+        async with aiomqtt.Client(host) as client:
+            async with client.messages() as messages:
+                await client.subscribe("/UA/Project/SmartLand/+/data")
+                async for message in messages:
+                    print(message.payload)
+                    print(f"Received message on topic '{message.topic}': {message.payload.decode()}")
 
-    @staticmethod
-    def on_connect(client, userdata, flags, rc):
-        client.subscribe("UA/Project/SmartLand/+/data")
+                    plant_key = str(message.topic).split('/')[4]
+                    plant = await iot['plants'].find_one({"key": plant_key})
 
-    def on_message(self, client, userdata, msg):
-        plant_key = msg.topic.split('/')[3]
-        plant = Plant.objects(key=plant_key).first()
+                    if plant is not None:
+                        print("is not none")
+                        print(plant)
+                        payload_str = message.payload.decode("utf-8")
+                        data = json.loads(payload_str)
 
-        if plant is not None:
-            payload_str = msg.payload.decode("utf-8")
-            data = json.loads(payload_str)
+                        print(data)
+                        temperature = data["temperature"]
+                        humidity = data["humidity"]
+                        moisture = data["moisture"]
+                        light = data["light"]
 
-            temperature = data["temperature"]
-            humidity = data["humidity"]
-            moisture = data["moisture"]
-            light = data["light"]
+                        plant['temperatures'].append({'value': temperature, 'timestamp': datetime.now()})
+                        plant['humidities'].append({'value': humidity, 'timestamp': datetime.now()})
+                        plant['moistures'].append({'value': moisture, 'timestamp': datetime.now()})
+                        plant['light_values'].append({'value': light, 'timestamp': datetime.now()})
 
-            plant.temperatures.append(SensorValue(value=temperature, timestamp=datetime.now()))
-            plant.humidities.append(SensorValue(value=humidity, timestamp=datetime.now()))
-            plant.moistures.append(SensorValue(value=moisture, timestamp=datetime.now()))
-            plant.light_values.append(SensorValue(value=light, timestamp=datetime.now()))
+                        await iot['plants'].replace_one({'_id': plant['_id']}, plant)
 
-            plant.save()
-            asyncio.create_task(self.socket_manager.send_message(payload_str, plant.id))
+                        asyncio.create_task(self.socket_manager.send_message(payload_str, str(plant['_id'])))
 
-            # todo implement the AI model here
-
+                        # todo implement the AI model here
