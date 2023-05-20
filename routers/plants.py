@@ -88,7 +88,7 @@ async def create_plant(plant_input: PlantInput, current_user: User = Depends(get
 async def delete_plant(plant_id: str, current_user: User = Depends(get_current_user)):
     if current_user.admin:
         try:
-            await engine.remove(Plant, Plant.id == plant_id)
+            await engine.remove(Plant, Plant.id == ObjectId(plant_id))
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
