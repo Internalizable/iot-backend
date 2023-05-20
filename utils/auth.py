@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 import jwt
 import datetime
 
-from database import iot
+from database import engine
 from models.user import User
 
 JWT_SECRET = "645a20dc8aa1914e38690d18"
@@ -44,7 +44,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 async def get_user(email: str):
-    user_data = await iot['users'].find_one({"email": email})
+    user_data = await engine.find_one(User, User.email == email);
     if user_data:
-        return User(**user_data)
+        return user_data
     return None

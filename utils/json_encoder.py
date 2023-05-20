@@ -1,6 +1,6 @@
 # app/json_encoder.py
 
-from bson import ObjectId
+from odmantic.bson import ObjectId
 from fastapi.encoders import jsonable_encoder as fastapi_jsonable_encoder
 from typing import Any
 

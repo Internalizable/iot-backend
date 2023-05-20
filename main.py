@@ -2,6 +2,9 @@ import asyncio
 
 from fastapi import FastAPI, Depends
 
+from database import engine
+from models.plant import Plant
+from models.user import User
 from routers import plants, users
 from utils.mqtt_manager import MQTTManager
 from dependencies.dependencies import get_socket_manager
@@ -17,6 +20,7 @@ async def startup_event():
     client = MQTTManager(get_socket_manager())
     asyncio.create_task(client.connect("test.mosquitto.org"))
 
+    await engine.configure_database([User, Plant])
 
 @app.get("/")
 async def root():

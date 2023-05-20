@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.params import Query
 
-from database import iot
+from database import engine
 from dependencies.dependencies import get_socket_manager
 from inputs.plant_input import PlantInput
 from models.plant import Plant
@@ -21,8 +21,11 @@ router = APIRouter()
 @router.get("/plants/")
 async def get_all_plant(current_user: User = Depends(get_current_user)):
     try:
-        queried_sensors = iot['plants'].find({},
-                                             {"temperatures": 0, "humidities": 0, "moistures": 0, "light_values": 0})
+        pipeline = [
+            {"$project": {"name": 1, "description": 1, "key": 1, "state": 1}}
+        ]
+
+        queried_sensors = await engine.aggregate(Plant, pipeline=pipeline)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
@@ -33,7 +36,7 @@ async def get_all_plant(current_user: User = Depends(get_current_user)):
 async def get_plant(plant_id: str, current_user: User = Depends(get_current_user)):
     if current_user.admin:
         try:
-            queried_sensor = iot['plants'].find_one({"_id": plant_id})
+            queried_sensor = await engine.find_one(Plant, Plant.id == plant_id)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
@@ -56,11 +59,8 @@ async def create_plant(plant_input: PlantInput, current_user: User = Depends(get
             light_values=[]
         )
 
-        new_plant_dict = plant.to_mongo().to_dict()
-
         try:
-            new_sensor = iot['plants'].insert_one(new_plant_dict)
-            created_sensor = iot['plants'].find_one({"_id": new_sensor.inserted_id})
+            created_sensor = await engine.save(plant)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
@@ -73,7 +73,7 @@ async def create_plant(plant_input: PlantInput, current_user: User = Depends(get
 async def delete_plant(plant_id: str, current_user: User = Depends(get_current_user)):
     if current_user.admin:
         try:
-            await iot['plants'].delete_one({"_id": plant_id})
+            await engine.remove(Plant, Plant.id == plant_id)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 

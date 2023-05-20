@@ -1,11 +1,11 @@
 import asyncio
 import json
 from datetime import datetime
-from database import iot
 import asyncio
 import asyncio_mqtt as aiomqtt
 
-from models.plant import SensorValue
+from database import engine
+from models.plant import SensorValue, Plant
 from utils.websocket_manager import WebSocketManager
 
 
@@ -23,12 +23,13 @@ class MQTTManager:
                     print(f"Received message on topic '{message.topic}': {message.payload.decode()}")
 
                     plant_key = str(message.topic).split('/')[4]
-                    plant = await iot['plants'].find_one({"key": plant_key})
+                    plant = await engine.find_one(Plant, Plant.key == plant_key)
 
                     if plant is not None:
                         print("is not none")
                         print(plant)
                         payload_str = message.payload.decode("utf-8")
+                        print(payload_str)
                         data = json.loads(payload_str)
 
                         print(data)
@@ -37,13 +38,12 @@ class MQTTManager:
                         moisture = data["moisture"]
                         light = data["light"]
 
-                        plant['temperatures'].append({'value': temperature, 'timestamp': datetime.now()})
-                        plant['humidities'].append({'value': humidity, 'timestamp': datetime.now()})
-                        plant['moistures'].append({'value': moisture, 'timestamp': datetime.now()})
-                        plant['light_values'].append({'value': light, 'timestamp': datetime.now()})
+                        plant.temperatures.append(SensorValue(value=temperature, timestamp=datetime.now()))
+                        plant.humidities.append(SensorValue(value=humidity, timestamp=datetime.now()))
+                        plant.moistures.append(SensorValue(value=moisture, timestamp=datetime.now()))
+                        plant.light_values.append(SensorValue(value=light, timestamp=datetime.now()))
 
-                        await iot['plants'].replace_one({'_id': plant['_id']}, plant)
-
-                        asyncio.create_task(self.socket_manager.send_message(payload_str, str(plant['_id'])))
+                        await engine.save(plant)
+                        asyncio.create_task(self.socket_manager.send_message(payload_str, str(plant.id)))
 
                         # todo implement the AI model here

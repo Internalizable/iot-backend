@@ -1,8 +1,7 @@
-from pydantic import BaseModel
+from odmantic import Model, Field
 
 
-class User(BaseModel):
-    username: str
-    email: str
+class User(Model):
+    email: str = Field(index=True, unique=True)
     password: str
-    admin: bool
+    admin: bool = Field(default=False)
