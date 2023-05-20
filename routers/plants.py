@@ -3,6 +3,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Depends, WebSocket, WebSocketDisconnect
 from fastapi.params import Query
+from odmantic import ObjectId
 
 from database import engine
 from dependencies.dependencies import get_socket_manager
@@ -39,11 +40,22 @@ async def get_all_plant(current_user: User = Depends(get_current_user)):
 async def get_plant(plant_id: str, current_user: User = Depends(get_current_user)):
     if current_user.admin:
         try:
-            queried_sensor = await engine.find_one(Plant, Plant.id == plant_id)
+            plant_id_obj = ObjectId(plant_id)
+
+            plant = await engine.find_one(Plant, Plant.id == plant_id_obj)
+
+            plant.temperatures.sort(key=lambda t: t.timestamp, reverse=True)
+            plant.humidities.sort(key=lambda h: h.timestamp, reverse=True)
+            plant.moistures.sort(key=lambda m: m.timestamp, reverse=True)
+            plant.light_values.sort(key=lambda l: l.timestamp, reverse=True)
+            plant.temperatures = plant.temperatures[:10]
+            plant.humidities = plant.humidities[:10]
+            plant.moistures = plant.moistures[:10]
+            plant.light_values = plant.light_values[:10]
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
-        return jsonable_encoder(queried_sensor)
+        return jsonable_encoder(plant)
     else:
         raise HTTPException(status_code=403, detail="You are not allowed to access this endpoint")
 
