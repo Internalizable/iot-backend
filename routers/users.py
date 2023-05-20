@@ -15,7 +15,8 @@ router = APIRouter()
 @router.post("/users/login")
 async def login_for_access_token(login_request: LoginRequest):
     user = await get_user(login_request.email)
-    if not user or user.password != login_request.password:
+    hashed_password = hashlib.sha256(login_request.password.encode()).hexdigest()
+    if not user or user.password != hashed_password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -37,5 +38,6 @@ async def create_user(signup_request: SignUpRequest):
 
     new_user = await iot["users"].insert_one(new_user_data)
     created_user = await iot["users"].find_one({"_id": new_user.inserted_id})
-    #todo return auth token
-    return jsonable_encoder(created_user)
+
+    access_token = create_access_token(data={"email": signup_request.email})
+    return jsonable_encoder({"access_token": access_token, "user": created_user})
