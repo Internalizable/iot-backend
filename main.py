@@ -7,6 +7,7 @@ from models.plant import Plant
 from models.user import User
 from routers import plants, users
 from utils.mqtt_manager import MQTTManager
+from ai.aimodel import AIModel
 from dependencies.dependencies import get_socket_manager
 
 app = FastAPI()
@@ -17,7 +18,10 @@ app.include_router(users.router)
 
 @app.on_event("startup")
 async def startup_event():
-    client = MQTTManager(get_socket_manager())
+    model = AIModel()
+    model.train("dataset.xlsx")
+
+    client = MQTTManager(get_socket_manager(), model)
     asyncio.create_task(client.connect("test.mosquitto.org"))
 
     await engine.configure_database([User, Plant])
