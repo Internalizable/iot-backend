@@ -21,11 +21,14 @@ router = APIRouter()
 @router.get("/plants/")
 async def get_all_plant(current_user: User = Depends(get_current_user)):
     try:
+
+        plants_collection = engine.get_collection(Plant)
         pipeline = [
             {"$project": {"name": 1, "description": 1, "key": 1, "state": 1}}
         ]
 
-        queried_sensors = await engine.aggregate(Plant, pipeline=pipeline)
+        documents = await plants_collection.aggregate(pipeline).to_list(length=None)
+        queried_sensors = [Plant.parse_doc(doc) for doc in documents]
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
