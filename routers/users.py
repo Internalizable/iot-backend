@@ -37,4 +37,5 @@ async def create_user(signup_request: SignUpRequest):
 
     new_user = await iot["users"].insert_one(new_user_data)
     created_user = await iot["users"].find_one({"_id": new_user.inserted_id})
+    #todo return auth token
     return jsonable_encoder(created_user)
