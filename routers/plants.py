@@ -68,6 +68,7 @@ async def create_plant(plant_input: PlantInput, current_user: User = Depends(get
             name=plant_input.name,
             description=plant_input.description,
             key=str(uuid.uuid4()),
+            online=False,
             state=False,
             temperatures=[],
             humidities=[],

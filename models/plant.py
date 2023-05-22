@@ -14,6 +14,7 @@ class Plant(Model):
     name: str = Field(required=True, unique=True)
     description: str = Field(required=True)
     key: str = Field(required=True, unique=True)
+    online: bool = Field(required=True, default=False)
     state: bool = Field(required=True, default=False)
     temperatures: List[SensorValue] = Field(default=[])
     humidities: List[SensorValue] = Field(default=[])

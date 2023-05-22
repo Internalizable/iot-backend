@@ -21,31 +21,74 @@ class MQTTManager:
         async with aiomqtt.Client(host) as client:
             async with client.messages() as messages:
                 await client.subscribe("/UA/Project/SmartLand/+/data")
+                await client.subscribe("/UA/Project/SmartLand/+/state")
+
                 async for message in messages:
                     print(f"Received message on topic '{message.topic}': {message.payload.decode()}")
 
                     plant_key = str(message.topic).split('/')[4]
+                    action = str(message.topic).split('/')[5]
+
                     plant = await engine.find_one(Plant, Plant.key == plant_key)
 
                     if plant is not None:
                         payload_str = message.payload.decode("utf-8")
                         data = json.loads(payload_str)
 
-                        temperature = float(data["temperature"])
-                        humidity = float(data["humidity"])
-                        moisture = float(data["moisture"])
-                        light = float(data["light"])
+                        if action == "state":
 
-                        plant.temperatures.append(SensorValue(value=temperature, timestamp=datetime.now()))
-                        plant.humidities.append(SensorValue(value=humidity, timestamp=datetime.now()))
-                        plant.moistures.append(SensorValue(value=moisture, timestamp=datetime.now()))
-                        plant.light_values.append(SensorValue(value=light, timestamp=datetime.now()))
+                            if data["state"] == "startup":
+                                plant.state = False
+                                plant.online = True
+                            elif data["state"] == "shutdown":
+                                plant.state = False
+                                plant.online = False
+                            elif data["state"] == "watering":
+                                plant.state = False
+                                plant.online = True
 
-                        await engine.save(plant)
-                        asyncio.create_task(self.socket_manager.send_message(payload_str, str(plant.id)))
+                            asyncio.create_task(self.socket_manager.send_message(
+                                json.dumps({"type": "state",
+                                            "payload": {
+                                                "state": plant.state,
+                                                "online": plant.online
+                                            }}), str(plant.id)))
 
-                        xnew = pd.DataFrame([[temperature, humidity, light, moisture]],
-                                            columns=['temperature', 'humidity', 'light', 'moisture'])
+                            await engine.save(plant)
 
-                        ynew = self.model.predict(xnew)
-                        print("Trained model output " + str(ynew))
+                        else:
+                            temperature = float(data["temperature"])
+                            humidity = float(data["humidity"])
+                            moisture = float(data["moisture"])
+                            light = float(data["light"])
+
+                            plant.temperatures.append(SensorValue(value=temperature, timestamp=datetime.now()))
+                            plant.humidities.append(SensorValue(value=humidity, timestamp=datetime.now()))
+                            plant.moistures.append(SensorValue(value=moisture, timestamp=datetime.now()))
+                            plant.light_values.append(SensorValue(value=light, timestamp=datetime.now()))
+
+                            asyncio.create_task(self.socket_manager.send_message(
+                                json.dumps({"type": "data",
+                                            "payload": data}), str(plant.id)))
+
+                            xnew = pd.DataFrame([[temperature, humidity, light, moisture]],
+                                                columns=['temperature', 'humidity', 'light', 'moisture'])
+
+                            ynew = self.model.predict(xnew)
+
+                            if int(ynew[0]) > 0 and not plant.state:
+                                await client.publish("/UA/Project/SmartLand/" + plant.key + "/control", json.dumps({
+                                    "state": 1,
+                                    "time": int(ynew[0])
+                                }))
+
+                                asyncio.create_task(self.socket_manager.send_message(
+                                    json.dumps({"type": "state",
+                                                "payload": {
+                                                    "state": True,
+                                                    "online": True
+                                                }}), str(plant.id)))
+
+                                plant.state = True
+
+                            await engine.save(plant)
