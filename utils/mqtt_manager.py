@@ -50,6 +50,7 @@ class MQTTManager:
                             asyncio.create_task(self.socket_manager.send_message(
                                 json.dumps({"type": "state",
                                             "payload": {
+                                                "id": str(plant.id),
                                                 "state": plant.state,
                                                 "online": plant.online
                                             }}), str(plant.id)))
@@ -85,6 +86,7 @@ class MQTTManager:
                                 asyncio.create_task(self.socket_manager.send_message(
                                     json.dumps({"type": "state",
                                                 "payload": {
+                                                    "id": str(plant.id),
                                                     "state": True,
                                                     "online": True
                                                 }}), str(plant.id)))
