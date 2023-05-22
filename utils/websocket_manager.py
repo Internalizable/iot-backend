@@ -23,3 +23,8 @@ class WebSocketManager:
         if plant_id in self.active_connections:
             for websocket in self.active_connections[plant_id]:
                 await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for plant_id in self.active_connections:
+            for websocket in self.active_connections[plant_id]:
+                await websocket.send_text(message)

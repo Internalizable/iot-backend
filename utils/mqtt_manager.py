@@ -47,13 +47,13 @@ class MQTTManager:
                                 plant.state = False
                                 plant.online = True
 
-                            asyncio.create_task(self.socket_manager.send_message(
+                            asyncio.create_task(self.socket_manager.broadcast(
                                 json.dumps({"type": "state",
                                             "payload": {
                                                 "id": str(plant.id),
                                                 "state": plant.state,
                                                 "online": plant.online
-                                            }}), str(plant.id)))
+                                            }})))
 
                             await engine.save(plant)
 
@@ -83,13 +83,13 @@ class MQTTManager:
                                     "time": int(ynew[0])
                                 }))
 
-                                asyncio.create_task(self.socket_manager.send_message(
+                                asyncio.create_task(self.socket_manager.broadcast(
                                     json.dumps({"type": "state",
                                                 "payload": {
                                                     "id": str(plant.id),
                                                     "state": True,
                                                     "online": True
-                                                }}), str(plant.id)))
+                                                }})))
 
                                 plant.state = True
 
