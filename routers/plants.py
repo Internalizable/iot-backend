@@ -25,7 +25,7 @@ async def get_all_plant(current_user: User = Depends(get_current_user)):
 
         plants_collection = engine.get_collection(Plant)
         pipeline = [
-            {"$project": {"name": 1, "description": 1, "key": 1, "state": 1}}
+            {"$project": {"name": 1, "description": 1, "key": 1, "state": 1, "online": 1}}
         ]
 
         documents = await plants_collection.aggregate(pipeline).to_list(length=None)
