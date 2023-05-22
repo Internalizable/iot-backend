@@ -49,10 +49,10 @@ async def get_plant(plant_id: str, current_user: User = Depends(get_current_user
             plant.moistures.sort(key=lambda m: m.timestamp, reverse=True)
             plant.light_values.sort(key=lambda l: l.timestamp, reverse=True)
 
-            plant.temperatures = plant.temperatures[:10].sort(key=lambda l: l.timestamp)
-            plant.humidities = plant.humidities[:10].sort(key=lambda l: l.timestamp)
-            plant.moistures = plant.moistures[:10].sort(key=lambda l: l.timestamp)
-            plant.light_values = plant.light_values[:10].sort(key=lambda l: l.timestamp)
+            plant.temperatures = plant.temperatures[:10].sort(key=lambda l: l.timestamp, reverse=False)
+            plant.humidities = plant.humidities[:10].sort(key=lambda l: l.timestamp, reverse=False)
+            plant.moistures = plant.moistures[:10].sort(key=lambda l: l.timestamp, reverse=False)
+            plant.light_values = plant.light_values[:10].sort(key=lambda l: l.timestamp, reverse=False)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
 
