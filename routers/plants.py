@@ -44,10 +44,10 @@ async def get_plant(plant_id: str, current_user: User = Depends(get_current_user
 
             plant = await engine.find_one(Plant, Plant.id == plant_id_obj)
 
-            plant.temperatures.sort(key=lambda t: t.timestamp, reverse=True)
-            plant.humidities.sort(key=lambda h: h.timestamp, reverse=True)
-            plant.moistures.sort(key=lambda m: m.timestamp, reverse=True)
-            plant.light_values.sort(key=lambda l: l.timestamp, reverse=True)
+            plant.temperatures.sort(key=lambda t: t.timestamp, reverse=False)
+            plant.humidities.sort(key=lambda h: h.timestamp, reverse=False)
+            plant.moistures.sort(key=lambda m: m.timestamp, reverse=False)
+            plant.light_values.sort(key=lambda l: l.timestamp, reverse=False)
             plant.temperatures = plant.temperatures[:10]
             plant.humidities = plant.humidities[:10]
             plant.moistures = plant.moistures[:10]
